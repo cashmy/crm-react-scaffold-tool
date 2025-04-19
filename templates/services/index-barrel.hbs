@@ -1,0 +1,11 @@
+export { default as {{camelCase name}}Service } from './{{camelCase
+name}}Service'; 
+{{#unless useReactQuery}}
+export { default as {{camelCase name}}Reducer } from './{{camelCase name}}Slice';
+{{/unless}} 
+{{#if useReactQuery}}
+export * from './{{camelCase name}}.queries';
+{{/if}}
+{{#if includeMUI}}
+export * from './{{pascalCase name}}Card';
+{{/if}}

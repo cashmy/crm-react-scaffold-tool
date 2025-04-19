@@ -1,0 +1,38 @@
+{
+  "name": "crm-react-scaffold-tool",
+  "version": "0.0.1",
+  "description": "React Scaffolding tool",
+  "main": "plopfile.js",
+  "scripts": {
+    "test": "test",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.hbs",
+    "format": "prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cashmy/crm-react-scaffold-tool.git"
+  },
+  "author": "Cash Myers",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/cashmy/crm-react-scaffold-tool/issues"
+  },
+  "homepage": "https://github.com/cashmy/crm-react-scaffold-tool#readme",
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "react": "^19.1.0",
+    "react-router-dom": "^6.30.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.25.0",
+    "eslint": "^9.25.0",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-hbs": "^1.0.3",
+    "eslint-plugin-prettier": "^5.2.6",
+    "eslint-plugin-react": "^7.37.5",
+    "inquirer": "^12.5.2",
+    "plop": "^4.0.1",
+    "prettier": "^3.5.3"
+  }
+}
