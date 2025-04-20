@@ -10,7 +10,7 @@ export default function (plop) {
   // Register the 'includes' helper
   plop.setHelper(
     "includes",
-    (array, value) => Array.isArray(array) && array.includes(value)
+    (array, value) => Array.isArray(array) && array.includes(value),
   );
   // Register the 'kebabCase' helper
   plop.setHelper("kebabCase", (text) => {
@@ -42,7 +42,7 @@ export default function (plop) {
         { name: "getAllRecordsByUser", message: "Filter by User" },
         { name: "getAllRecordsByActiveSts", message: "Filter by Status" },
         { name: "getRecordByName", message: "Get by Name" },
-        { name: "patchRecordSts", message: "Patch Status" }
+        { name: "patchRecordSts", message: "Patch Status" },
       ];
 
       // Use inquirer directly for fallback prompts
@@ -52,7 +52,7 @@ export default function (plop) {
           await inquirer.prompt({
             name: "name",
             type: "input",
-            message: "Enter the endpoint category (e.g. players):"
+            message: "Enter the endpoint category (e.g. players):",
           })
         ).name;
 
@@ -63,7 +63,7 @@ export default function (plop) {
             name: "format",
             type: "list",
             message: "Select output format:",
-            choices: ["typescript", "javascript"]
+            choices: ["typescript", "javascript"],
           })
         ).format;
 
@@ -74,7 +74,7 @@ export default function (plop) {
               name: "extras",
               type: "checkbox",
               message: "Select additional endpoints to generate:",
-              choices: extraEndpoints
+              choices: extraEndpoints,
             })
           ).extras;
 
@@ -85,7 +85,7 @@ export default function (plop) {
             name: "includeVitest",
             type: "confirm",
             message: "Include Vitest tests?",
-            default: true
+            default: true,
           })
         ).includeVitest;
 
@@ -96,7 +96,7 @@ export default function (plop) {
             name: "includeRedux",
             type: "confirm",
             message: "Generate a Redux slice?",
-            default: true
+            default: true,
           })
         ).includeRedux;
 
@@ -107,7 +107,7 @@ export default function (plop) {
             name: "useRtkQuery",
             type: "confirm",
             message: "Use RTK Query instead of standard Redux slices?",
-            default: false
+            default: false,
           })
         ).useRtkQuery;
 
@@ -117,7 +117,7 @@ export default function (plop) {
         extras,
         includeVitest,
         includeRedux,
-        useRtkQuery
+        useRtkQuery,
       };
     },
 
@@ -129,6 +129,7 @@ export default function (plop) {
           : "templates/services/service-js.hbs";
 
       const actions = [
+        //*  Add the main service File
         {
           type: "add",
           path: `src/services/{{kebabCase name}}/{{camelCase name}}.service.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
@@ -139,11 +140,30 @@ export default function (plop) {
               return `Service File already exists. Skipping file creation.`;
             }
             return false; // Proceed with the action
-          }
-        }
+          },
+        },
       ];
 
-      // Add Redux store logic
+      // * Add the test file
+      if (data.includeVitest) {
+        actions.push({
+          type: "add",
+          path: `src/services/{{kebabCase name}}/{{camelCase name}}.service.test.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
+          templateFile:
+            data.format === "typescript"
+              ? "templates/services/test-ts.hbs"
+              : "templates/services/test-js.hbs",
+          skip: () => {
+            const testFilePath = `src/services/${plop.getHelper("kebabCase")(data.name)}/${plop.getHelper("camelCase")(data.name)}.service.test.${data.format === "typescript" ? "ts" : "js"}`;
+            if (fs.existsSync(testFilePath)) {
+              return `Test file for '${data.name}' already exists. Skipping test file creation.`;
+            }
+            return false; // Proceed with the action
+          },
+        });
+      }
+
+      // * Add Redux store logic
       const storePath = `src/store/store.${data.format === "typescript" ? "ts" : "js"}`;
       const hasStore = fs.existsSync(storePath);
       const reducerInsertRegex = /reducer:\s*{([\s\S]*?)}/;
@@ -155,7 +175,7 @@ export default function (plop) {
           templateFile:
             data.format === "typescript"
               ? "templates/services/store-ts.hbs"
-              : "templates/services/store-js.hbs"
+              : "templates/services/store-js.hbs",
         });
       } else if (data.includeRedux && hasStore) {
         actions.push({
@@ -166,13 +186,13 @@ export default function (plop) {
           skip: () => {
             const fileContent = fs.readFileSync(storePath, "utf8");
             const reducerExists = new RegExp(
-              `\\b${plop.getHelper("camelCase")(data.name)}Reducer\\b`
+              `\\b${plop.getHelper("camelCase")(data.name)}Reducer\\b`,
             ).test(fileContent);
             if (reducerExists) {
               return `Reducer for '${data.name}' already exists in the store. Skipping modification.`;
             }
             return false; // Proceed with the action
-          }
+          },
         });
 
         actions.push({
@@ -185,7 +205,7 @@ export default function (plop) {
             const fileContent = fs.readFileSync(storePath, "utf8");
             const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically
             const regexPattern = new RegExp(
-              `import\\s+${reducerName}Reducer\\s+from\\s+['"].*${reducerName}Slice['"];`
+              `import\\s+${reducerName}Reducer\\s+from\\s+['"].*${reducerName}Slice['"];`,
             );
             const importExists = regexPattern.test(fileContent);
 
@@ -193,9 +213,41 @@ export default function (plop) {
               return `Import for '${data.name}' already exists in the store. Skipping modification.`;
             }
             return false; // Proceed with the action
-          }
+          },
         });
       }
+
+      // * Add the Provider wrapper to the Main file
+      const mainPath = `src/main.${data.format === "typescript" ? "tsx" : "jsx"}`;
+      const hasMain = fs.existsSync(mainPath);
+
+      if (data.includeRedux && hasMain) {
+        const mainContent = fs.readFileSync(mainPath, "utf8");
+        if (
+          !mainContent.includes("Provider") &&
+          !mainContent.includes("store")
+        ) {
+          actions.push({
+            type: "modify",
+            path: mainPath,
+            pattern: /[\s\S]*/, // match entire file
+            templateFile: "templates/services/provider-wrap.hbs",
+          });
+        }
+      }
+
+      // * Add the Typed Redux Hooks file for Redux
+      const hooksPath = "src/store/hooks.ts";
+      const hasHooks = fs.existsSync(hooksPath);
+
+      if (data.includeRedux && data.format === "typescript" && !hasHooks) {
+        actions.push({
+          type: "add",
+          path: hooksPath,
+          templateFile: "templates/hooks-ts.hbs",
+        });
+      }
+
       console.log("\n\n******* Generating Service *******");
       console.log("Service name:", data.name, "\n");
       // console.log("Selected format:", data.format);
@@ -206,6 +258,6 @@ export default function (plop) {
       // console.log("Data", data);
 
       return actions;
-    }
+    },
   });
 }
