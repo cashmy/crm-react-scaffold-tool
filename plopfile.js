@@ -163,6 +163,25 @@ export default function (plop) {
         });
       }
 
+      // * Add the "Basic" Redux slice
+      if (data.includeRedux) {
+        actions.push({
+          type: "add",
+          path: `src/services/{{kebabCase name}}/{{camelCase name}}Slice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
+          templateFile:
+            data.format === "typescript"
+              ? "templates/services/redux-slice-ts.hbs"
+              : "templates/services/redux-slice-js.hbs",
+          skip: () => {
+            const sliceFilePath = `src/services/${plop.getHelper("kebabCase")(data.name)}/${plop.getHelper("camelCase")(data.name)}Slice.${data.format === "typescript" ? "ts" : "js"}`;
+            if (fs.existsSync(sliceFilePath)) {
+              return `Slice file for '${data.name}' already exists. Skipping slice file creation.`;
+            }
+            return false; // Proceed with the action
+          },
+        });
+      }
+
       // * Add Redux store logic
       const storePath = `src/store/store.${data.format === "typescript" ? "ts" : "js"}`;
       const hasStore = fs.existsSync(storePath);
