@@ -2,13 +2,12 @@
   "semi": true,
   "singleQuote": false,
   "tabWidth": 2,
-  "embeddedLanguageFormatting": "off",
-  "trailingComma": "none",
-  "overrides":
-    [
-      {
-        "files": "*.hbs",
-        "options": { "parser": "babel", "embeddedLanguageFormatting": "off" }
+  "overrides": [
+    {
+      "files": "*.hbs",
+      "options": {
+        "parser": "babel"
       }
-    ]
+    }
+  ]
 }

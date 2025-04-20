@@ -2,8 +2,9 @@
   "name": "crm-react-scaffold-tool",
   "version": "0.0.1",
   "description": "React Scaffolding tool",
-  "main": "plopfile.js",
+  "type": "module",
   "scripts": {
+    "gen": "plop",
     "test": "test",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.hbs",
     "format": "prettier --write ."
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/cashmy/crm-react-scaffold-tool#readme",
   "dependencies": {
+    "axios": "^1.8.4",
     "chalk": "^5.4.1",
     "react": "^19.1.0",
     "react-router-dom": "^6.30.0"

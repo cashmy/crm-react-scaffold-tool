@@ -1,0 +1,36 @@
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import {{pascalCase name}}Service from '.\{{pascalCase name}}.service';
+
+export const fetch{{pascalCase name}}s = createAsyncThunk(
+  '{{camelCase name}}/fetchAll',
+  async () => {
+    const response = await {{pascalCase name}}Service.getAllRecords();
+    return response.data;
+  }
+);
+
+const {{camelCase name}}Slice = createSlice({
+  name: '{{camelCase name}}',
+  initialState: {
+    items: [],
+    loading: false,
+    error: null,
+  },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetch{{pascalCase name}}s.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetch{{pascalCase name}}s.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+      })
+      .addCase(fetch{{pascalCase name}}s.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error;
+      });
+  },
+});
+
+export default {{camelCase name}}Slice.reducer;

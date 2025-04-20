@@ -1,8 +1,10 @@
-import { configureStore } from "@reduxjs/toolkit";
-import playerOneReducer from "./playerOneSlice";
+import { configureStore } from '@reduxjs/toolkit';
+import playerFourReducer from './playerFourSlice';
+import playerTwoReducer from './playerTwoSlice';
 
 export const store = configureStore({
   reducer: {
-    playerOne: playerOneReducer
-  }
+    playerFour: playerFourReducer,
+    playerTwo: playerTwoReducer,
+  },
 });

@@ -1,20 +1,19 @@
-#!/usr/bin/env node
-import fs from "fs";
-import inquirer from "inquirer";
+// import fs from "fs";
+// import inquirer from "inquirer";
 import chalk from "chalk";
-import plop from "plop";
-
-const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-
-plop.setHelper("includes", (array, value) => {
-  return Array.isArray(array) && array.includes(value);
-});
+import {
+  includes,
+  snakeCase,
+  titleCase,
+  kebabCase,
+  capitalize,
+} from "./plop-helpers.js";
 
 const endpointPrompts = [
   { name: "getAllRecordsByUser", message: "Filter by User" },
   { name: "getAllRecordsByActiveSts", message: "Filter by Status" },
   { name: "getRecordByName", message: "Get by Name" },
-  { name: "patchRecordSts", message: "Patch Status" }
+  { name: "patchRecordSts", message: "Patch Status" },
 ];
 
 const generateService = (name, selectedEndpoints) => {
@@ -39,7 +38,7 @@ const generateService = (name, selectedEndpoints) => {
     return axios
       .patch(API_URL + \`\${id}/\${sts}\`, { headers: authHeader() })
       .then((response) => response.data);
-  };`
+  };`,
   };
 
   const selectedMethods = selectedEndpoints
@@ -84,23 +83,43 @@ export default new ${className}();
 `;
 };
 
-(async () => {
-  const { serviceName } = await inquirer.prompt({
-    name: "serviceName",
-    type: "input",
-    message: "Enter the endpoint category (e.g. 'players'):"
+export default function (plop) {
+  // plop.setHelper("includes", includes);
+  // plop.setHelper("titleCase", titleCase);
+  // plop.setHelper("snakeCase", snakeCase);
+  // plop.setHelper("kebabCase", kebabCase);
+  // plop.setHelper("capitalize", capitalize);
+
+  plop.setGenerator("service", {
+    description: "Generate a service with optional endpoints",
+    prompts: [
+      {
+        type: "input",
+        name: "serviceName",
+        message: "Enter the endpoint category (e.g. 'players'):",
+      },
+      {
+        type: "checkbox",
+        name: "extras",
+        message: "Select additional endpoints to generate:",
+        choices: endpointPrompts,
+      },
+    ],
+    actions: [
+      {
+        type: "add",
+        path: "src/services/{{camelCase serviceName}}Service.js",
+        templateFile: "templates/services/service-js.hbs",
+      },
+      {
+        type: "modify",
+        path: "src/services/{{camelCase serviceName}}Service.js",
+        transform: (fileContent, { serviceName, extras }) => {
+          const code = generateService(serviceName, extras);
+          return code;
+        },
+      },
+    ],
   });
-
-  const { extras } = await inquirer.prompt({
-    name: "extras",
-    type: "checkbox",
-    message: "Select additional endpoints to generate:",
-    choices: endpointPrompts
-  });
-
-  const code = generateService(serviceName, extras);
-  const filename = `${capitalize(serviceName)}Service.js`;
-  fs.writeFileSync(filename, code);
-
-  console.log(chalk.green(`✅ ${filename} generated successfully.`));
-})();
+  // console.log(chalk.green(`✅ ${serviceName} generated successfully.`));
+}

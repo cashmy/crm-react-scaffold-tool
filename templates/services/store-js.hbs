@@ -1,0 +1,8 @@
+import { configureStore } from '@reduxjs/toolkit';
+import {{camelCase name}}Reducer from './{{camelCase name}}Slice';
+
+export const store = configureStore({
+  reducer: {
+    {{camelCase name}}: {{camelCase name}}Reducer,
+  },
+});

@@ -1,0 +1,18 @@
+import { describe, it, expect, vi } from 'vitest';
+import {{pascalCase name}}Service from '../services/{{pascalCase name}}Service';
+import axios from 'axios';
+
+vi.mock('axios');
+
+describe('{{pascalCase name}}Service', () => {
+  it('should call getAllRecords', () => {
+    {{pascalCase name}}Service.getAllRecords();
+    expect(axios.get).toHaveBeenCalled();
+  });
+
+  it('should call addRecord', () => {
+    const payload = { name: 'Test' };
+    {{pascalCase name}}Service.addRecord(payload);
+    expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('{{name}}'), payload, expect.anything());
+  });
+});

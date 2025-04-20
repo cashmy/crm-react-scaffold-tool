@@ -1,0 +1,35 @@
+import axios from 'axios'; 
+import authHeader from "../authHeader.js"; 
+
+const baseUrl = process.env.NEXT_PUBLIC_BASE_API_URL; 
+const API_URL = baseUrl + "{{name}}/";
+
+class {{pascalCase name}}Service { 
+  getAllRecords = () => axios.get(API_URL, { headers: authHeader() }); 
+
+  getRecordById = (id) => axios.get(API_URL + `${id}/`, { headers: authHeader() }); 
+
+addRecord = (data) => axios.post(API_URL, data, { headers: authHeader() }); 
+
+updateRecord = (data) => axios.put(API_URL + `${data.id}/`, data, { headers: authHeader() }).then((r) => r.data);
+
+deleteRecord = (id) => axios.delete(API_URL + `${id}`, { headers: authHeader() }).then((r) => r.data);
+
+{{#if (includes extras "getAllRecordsByUser")}}
+  getAllRecordsByUser = (userId = 1) => axios.get(API_URL + `user/${userId}`, { headers: authHeader() });
+{{/if}}
+
+{{#if (includes extras "getAllRecordsByActiveSts")}}
+  getAllRecordsByActiveSts = (status) => axios.get(API_URL + `archive/${status}`, { headers: authHeader() });
+{{/if}}
+
+{{#if (includes extras "getRecordByName")}}
+  getRecordByName = (name) => axios.get(API_URL + `name/${name}/`, { headers: authHeader() });
+{{/if}}
+
+{{#if (includes extras "patchRecordSts")}}
+  patchRecordSts = (id, sts) => axios.patch(API_URL + `${id}/${sts}`, { headers: authHeader() }).then((r) => r.data);
+{{/if}}
+} 
+
+export default new {{pascalCase name}}Service();
