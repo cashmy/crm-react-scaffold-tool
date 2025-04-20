@@ -34,7 +34,7 @@ describe('{{pascalCase name}}Service', () => {
   });
 
   it('should call getRecordById', () => {
-    const id: number = 1;
+    const id = 1;
     {{pascalCase name}}Service.getRecordById(id);
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(
@@ -44,7 +44,7 @@ describe('{{pascalCase name}}Service', () => {
   });
 
   it('should call addRecord', () => {
-    const payload: Record<string, any> = { name: 'Test' };
+    const payload = { name: 'Test' };
     {{pascalCase name}}Service.addRecord(payload);
     expect(axios.post).toHaveBeenCalledTimes(1);
     expect(axios.post).toHaveBeenCalledWith(
@@ -55,7 +55,7 @@ describe('{{pascalCase name}}Service', () => {
   });
 
   it('should call updateRecord', () => {
-    const payload: { id: number; [key: string]: any } = { id: 1, name: 'Test' };
+    const payload = { id: 1, name: 'Test' };
     {{pascalCase name}}Service.updateRecord(payload);
     expect(axios.put).toHaveBeenCalledTimes(1);
     expect(axios.put).toHaveBeenCalledWith(
@@ -66,7 +66,7 @@ describe('{{pascalCase name}}Service', () => {
   });
 
   it('should call deleteRecord', async () => {
-    const id: number = 1;
+    const id = 1;
     await {{pascalCase name}}Service.deleteRecord(id);
     expect(axios.delete).toHaveBeenCalledTimes(1);
     expect(axios.delete).toHaveBeenCalledWith(
@@ -77,7 +77,7 @@ describe('{{pascalCase name}}Service', () => {
 
   {{#if (includes extras "getAllRecordsByUser")}}
   it('should call getAllRecordsByUser', () => {
-    const userId: number = 5;
+    const userId = 5;
     {{pascalCase name}}Service.getAllRecordsByUser(userId);
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(
@@ -89,7 +89,7 @@ describe('{{pascalCase name}}Service', () => {
 
   {{#if (includes extras "getAllRecordsByActiveSts")}}
   it('should call getAllRecordsByActiveSts', () => {
-    const status: string = 'active';
+    const status = 'active';
     {{pascalCase name}}Service.getAllRecordsByActiveSts(status);
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(
@@ -101,7 +101,7 @@ describe('{{pascalCase name}}Service', () => {
 
   {{#if (includes extras "getRecordByName")}}
   it('should call getRecordByName', () => {
-    const dataName: string = 'Test name';
+    const dataName = 'Test name';
     {{pascalCase name}}Service.getRecordByName(dataName);
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get).toHaveBeenCalledWith(
@@ -113,8 +113,8 @@ describe('{{pascalCase name}}Service', () => {
 
   {{#if (includes extras "patchRecordSts")}}
   it('should call patchRecordSts', async () => {
-    const id: number = 1;
-    const sts: string = 'active';
+    const id = 1;
+    const sts = 'active';
     await {{pascalCase name}}Service.patchRecordSts(id, sts);
     expect(axios.patch).toHaveBeenCalledTimes(1);
     expect(axios.patch).toHaveBeenCalledWith(

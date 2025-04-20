@@ -128,6 +128,14 @@ export default function (plop) {
           ? "templates/services/service-ts.hbs"
           : "templates/services/service-js.hbs";
 
+      // Convert string values to booleans for proper evaluation in the actions
+      data.includeVitest =
+        data.includeVitest === true || data.includeVitest === "true";
+      data.includeRedux =
+        data.includeRedux === true || data.includeRedux === "true";
+      data.useRtkQuery =
+        data.useRtkQuery === true || data.useRtkQuery === "true";
+
       const actions = [
         //*  Add the main service File
         {
@@ -180,7 +188,7 @@ export default function (plop) {
             return false; // Proceed with the action
           },
         });
-      } else if (data.useRtkQuery) {
+      } else if (data.includeRedux && data.useRtkQuery) {
         // * Add the RTK Query API slice
         actions.push({
           type: "add",
@@ -227,50 +235,136 @@ export default function (plop) {
         actions.push({
           type: "add",
           path: storePath,
-          templateFile:
-            data.format === "typescript"
+          templateFile: data.useRtkQuery
+            ? data.format === "typescript"
+              ? "templates/services/store-rtkq-ts.hbs"
+              : "templates/services/store-rtkq-js.hbs"
+            : data.format === "typescript"
               ? "templates/services/store-ts.hbs"
               : "templates/services/store-js.hbs",
         });
       } else if (data.includeRedux && hasStore) {
         // TODO: Add condition for RtkQ check here - add apiSlice and Middleware else the code below.
-        actions.push({
-          type: "modify",
-          path: storePath,
-          pattern: /reducer:\s*{([\s\S]*?)}/,
-          template: `reducer: {\n    {{camelCase name}}: {{camelCase name}}Reducer,$1}`,
-          skip: () => {
-            const fileContent = fs.readFileSync(storePath, "utf8");
-            const reducerExists = new RegExp(
-              `\\b${plop.getHelper("camelCase")(data.name)}Reducer\\b`,
-            ).test(fileContent);
-            if (reducerExists) {
-              return `Reducer for '${data.name}' already exists in the store. Skipping modification.`;
-            }
-            return false; // Proceed with the action
-          },
-        });
+        if (data.useRtkQuery === true) {
+          // & Add the RTKQ reducer to the store
+          actions.push({
+            type: "modify",
+            path: storePath,
+            pattern: /reducer:\s*{([\s\S]*?)}/,
+            template: `reducer: {\n    [{{camelCase name}}ApiSlice.reducerPath]: {{camelCase name}}ApiSlice.reducer,$1}`,
+            skip: () => {
+              const fileContent = fs.readFileSync(storePath, "utf8");
+              const reducerExists = new RegExp(
+                `\\b${plop.getHelper("camelCase")(data.name)}ApiSlice\\b`,
+              ).test(fileContent);
+              if (reducerExists) {
+                return `Reducer for '${data.name}' already exists in the store. Skipping modification.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+          // & Add the import statement for the RTKQ reducer
+          actions.push({
+            type: "modify",
+            path: storePath,
+            pattern:
+              /(import\s+\{\s*configureStore\s*\}\s+from\s+['"]@reduxjs\/toolkit['"];)/,
+            template: `$1\nimport { {{camelCase name}}ApiSlice } from './{{camelCase name}}ApiSlice';`,
+            skip: () => {
+              const fileContent = fs.readFileSync(storePath, "utf8");
+              const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically
+              const regexPattern = new RegExp(
+                `import\\s+\\{\\s*${reducerName}ApiSlice\\s*\\}\\s+from\\s+['"].*${reducerName}ApiSlice['"];`,
+              );
+              const importExists = regexPattern.test(fileContent);
 
-        actions.push({
-          type: "modify",
-          path: storePath,
-          pattern:
-            /(import\s+\{\s*configureStore\s*\}\s+from\s+['"]@reduxjs\/toolkit['"];)/,
-          template: `$1\nimport {{camelCase name}}Reducer from './{{camelCase name}}Slice';`,
-          skip: () => {
-            const fileContent = fs.readFileSync(storePath, "utf8");
-            const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically
-            const regexPattern = new RegExp(
-              `import\\s+${reducerName}Reducer\\s+from\\s+['"].*${reducerName}Slice['"];`,
-            );
-            const importExists = regexPattern.test(fileContent);
+              if (importExists) {
+                return `Import for '${data.name}' already exists in the store. Skipping modification.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+          // & Add or Update the middleware to the storePath
 
-            if (importExists) {
-              return `Import for '${data.name}' already exists in the store. Skipping modification.`;
-            }
-            return false; // Proceed with the action
-          },
-        });
+          //         // ? First check if the middleware already exists and if so, simply add using .concat
+          //         actions.push({
+          //           type: "modify",
+          //           path: storePath,
+          //           pattern:
+          //             /(middleware:\s*\(getDefaultMiddleware\)\s*=>\s*{[\s\S]*?getDefaultMiddleware\(\)\.concat\([\s\S]*?)\);/,
+          //           template: `$1.concat({{camelCase name}}ApiSlice.middleware);`,
+          //           skip: () => {
+          //             const fileContent = fs.readFileSync(storePath, "utf8");
+          //             const middlewareExists = new RegExp(
+          //               `\\b${plop.getHelper("camelCase")(data.name)}ApiSlice\\b`,
+          //             ).test(fileContent);
+          //             if (middlewareExists) {
+          //               return `Middleware for '${data.name}' already exists in the store. Skipping modification.`;
+          //             }
+          //             return false; // Proceed with the action
+          //           },
+          //         });
+
+          //         actions.push({
+          //           type: "modify",
+          //           path: storePath,
+          //           pattern:
+          //             /(middleware:\s*\(getDefaultMiddleware\)\s*=>\s*{[\s\S]*?})|$/,
+          //           template: `middleware: (getDefaultMiddleware) => {
+          //   return getDefaultMiddleware().concat({{camelCase name}}ApiSlice.middleware);
+          // }`,
+          //           skip: () => {
+          //             const fileContent = fs.readFileSync(storePath, "utf8");
+          //             const middlewareExists = new RegExp(
+          //               `\\b${plop.getHelper("camelCase")(data.name)}ApiSlice\\b`,
+          //             ).test(fileContent);
+          //             if (middlewareExists) {
+          //               return `Middleware for '${data.name}' already exists in the store. Skipping modification.`;
+          //             }
+          //             return false; // Proceed with the action
+          //           },
+          //         });
+        } else {
+          // & Add the standard reducer to the store
+          actions.push({
+            type: "modify",
+            path: storePath,
+            pattern: /reducer:\s*{([\s\S]*?)}/,
+            template: `reducer: {\n    {{camelCase name}}: {{camelCase name}}Reducer,$1}`,
+            skip: () => {
+              const fileContent = fs.readFileSync(storePath, "utf8");
+              const reducerExists = new RegExp(
+                `\\b${plop.getHelper("camelCase")(data.name)}Reducer\\b`,
+              ).test(fileContent);
+              if (reducerExists) {
+                return `Reducer for '${data.name}' already exists in the store. Skipping modification.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+
+          // & Add the import statement for the standard reducer
+          actions.push({
+            type: "modify",
+            path: storePath,
+            pattern:
+              /(import\s+\{\s*configureStore\s*\}\s+from\s+['"]@reduxjs\/toolkit['"];)/,
+            template: `$1\nimport {{camelCase name}}Reducer from './{{camelCase name}}Slice';`,
+            skip: () => {
+              const fileContent = fs.readFileSync(storePath, "utf8");
+              const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically
+              const regexPattern = new RegExp(
+                `import\\s+${reducerName}Reducer\\s+from\\s+['"].*${reducerName}Slice['"];`,
+              );
+              const importExists = regexPattern.test(fileContent);
+
+              if (importExists) {
+                return `Import for '${data.name}' already exists in the store. Skipping modification.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+        }
       }
 
       // * Add the Provider wrapper to the Main file
