@@ -1,0 +1,471 @@
+import { configureStore } from "@reduxjs/toolkit";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// * Mock the authHeader module
+vi.mock("../authHeader", () => ({
+  default: vi.fn(() => "Bearer MOCK_TOKEN"),
+}));
+
+// * Get reference to the mock created by vi.mock
+import actualAuthHeader from "../authHeader";
+const mockAuthHeader = actualAuthHeader as unknown as Mock;
+
+// * Import the API Slice
+import { {{camelCase name}}Api } from "./{{camelCase name}}ApiSlice";
+
+// * --- Helper function definitions ---
+const createMockResponse = (
+  data: unknown,
+  ok: boolean = true,
+  status: number = 200
+): Response => {
+  const response: Response = {
+    ok,
+    status,
+    headers: new Headers({ "Content-Type": "application/json" }),
+    json: async () => data,
+    text: async () => JSON.stringify(data),
+    clone: () => ({ ...response }),
+  } as Response;
+  return response;
+};
+
+const createMockStore = () =>
+  configureStore({
+    reducer: {
+      [{{camelCase name}}Api.reducerPath]: {{camelCase name}}Api.reducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat({{camelCase name}}Api.middleware),
+  });
+// -----------------------------------
+
+// * --- Test Suite ---
+describe("{{camelCase name}}ApiSlice", () => {
+  let store: ReturnType<typeof createMockStore>;
+  let fetchMock: vi.Mock;
+
+  beforeEach(() => {
+    mockAuthHeader.mockClear();
+    store = createMockStore();
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockResolvedValue(createMockResponse({}));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // & --- Test Get All Records ---
+  //#region Get All Records
+  it("should fetch all records (getAllRecords)", async () => {
+    const mockData = [
+      { id: 1, name: "Record 1" },
+      { id: 2, name: "Record 2" },
+    ];
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockData));
+
+    const result = await store.dispatch(
+      {{camelCase name}}Api.endpoints.getAllRecords.initiate()
+    );
+
+    // Assertions on the result
+    expect(result.status).toBe("fulfilled");
+    expect(result.data).toEqual(mockData);
+
+    // --- Updated Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0] as Request;
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe("http://localhost:8000/{{camelCase name}}/");
+    expect(actualRequest.method).toBe("GET");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN"
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Get All Records
+
+  // & --- Test Get Record By ID ---
+  //#region Get Record By ID
+  it("should fetch a record by ID (getRecordById)", async () => {
+    const recordId = 5;
+    const mockData = { id: recordId, name: "Specific Record 5" };
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockData));
+
+    // Dispatch the action with the record ID
+    const result = await store.dispatch(
+      {{camelCase name}}Api.endpoints.getRecordById.initiate(recordId)
+    );
+
+    // Assertions on the result
+    expect(result.status).toBe("fulfilled");
+    expect(result.data).toEqual(mockData);
+
+    // --- Updated Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0] as Request;
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/${recordId}/`
+    );
+    expect(actualRequest.method).toBe("GET");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN"
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Get Record By ID
+
+  // & --- Test Add Record ---
+  //#region Add Record
+  it("should add a new record (addRecord)", async () => {
+    const newRecordData = { name: "New Record", value: 123 };
+    const returnedRecord = { id: 101, ...newRecordData };
+      // Simulate a 201 Created response
+    fetchMock.mockResolvedValueOnce(createMockResponse(returnedRecord, true, 201));
+
+    // Dispatch the action and call unwrap() on the returned promise
+    const promise = store.dispatch(
+      {{camelCase name}}Api.endpoints.addRecord.initiate(newRecordData),
+    );
+
+    // --- Updated Assertions ---
+    // Use expect().resolves to check the unwrapped result
+    await expect(promise.unwrap()).resolves.toEqual(returnedRecord);
+
+    // You can also check the result object if needed, but status won't be there
+    const result = await promise;
+    expect(result.data).toEqual(returnedRecord);
+
+    // --- Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe("http://localhost:8000/{{camelCase name}}/");
+    expect(actualRequest.method).toBe("POST");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // --- Updated Content-Type check ---
+    // Check if the Content-Type *starts with* 'application/json'
+    // or simply check for 'application/json' if the charset isn't critical
+    expect(actualRequest.headers.get("Content-Type")).toBe(
+      "application/json", // Adjusted expectation
+    );
+    // Alternatively, use stringContaining if needed:
+    // expect(actualRequest.headers.get("Content-Type")).toEqual(
+    //   expect.stringContaining("application/json")
+    // );
+    // ------------------------------------
+
+    // 4. Assert the request body
+    const requestBody = await actualRequest.json(); // Read the body from the Request
+    expect(requestBody).toEqual(newRecordData);
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Add Record
+
+  // & --- Test Update Record ---
+  //#region Update Record
+  it("should update an existing record (updateRecord)", async () => {
+    const updatedRecordData = { id: 1, name: "Updated Record" };
+    const returnedRecord = { ...updatedRecordData };
+    fetchMock.mockResolvedValueOnce(createMockResponse(returnedRecord));
+
+    // Dispatch the action with the updated record data
+    const promise = store.dispatch(
+      {{camelCase name}}Api.endpoints.updateRecord.initiate(updatedRecordData),
+    );
+
+    // --- Assertions ---
+    // Use expect().resolves to check the unwrapped result
+    await expect(promise.unwrap()).resolves.toEqual(updatedRecordData);
+
+    // You can also check the result object if needed
+    const result = await promise;
+    expect(result.data).toEqual(returnedRecord);
+
+    // --- Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/${updatedRecordData.id}/`,
+    );
+    expect(actualRequest.method).toBe("PUT");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Update Record
+
+  // & --- Test Delete Record ---
+  //#region Delete Record
+  it("should delete a record (deleteRecord)", async () => {
+    const recordId = 7;
+    // Simulate a 204 No Content response, often used for successful DELETE
+    fetchMock.mockResolvedValueOnce(createMockResponse(null, true, 204)); // data is null for 204
+
+
+    // Dispatch the action with the record ID
+    const promise = store.dispatch(
+      {{camelCase name}}Api.endpoints.deleteRecord.initiate(recordId),
+    );
+
+    // --- Assertions ---
+    // Use expect().resolves to check the unwrapped result
+    // It resolves even on 204. Check for null as the body was mocked as null.
+     await expect(promise.unwrap()).resolves.toBeNull(); // Changed from toBeUndefined()
+
+    // You can also check the result object if needed
+    const result = await promise;
+    // Data might be null or undefined depending on RTK Query handling of 204
+    expect(result.data).toBeNull(); // Or toBeUndefined()
+
+    // --- Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/${recordId}`,
+    );
+    expect(actualRequest.method).toBe("DELETE");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // Content-Type might not be relevant or set for DELETE with no body
+    expect(actualRequest.headers.get("Content-Type")).toBe(null);
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Delete Record
+
+  {{#if (includes extras "getAllRecordsByUser")}}
+  // & --- Test Get All Records By User ---
+  //#region Get All Records By User
+  it("should fetch all records by user (getAllRecordsByUser)", async () => {
+    const userId = 5;
+    const mockData = [
+      { id: 1, name: "Record 1", userId },
+      { id: 2, name: "Record 2", userId },
+    ];
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockData));
+
+    // Dispatch the action with the user ID
+    const result = await store.dispatch(
+      {{camelCase name}}Api.endpoints.getAllRecordsByUser.initiate(userId),
+    );
+
+    // Assertions on the result
+    expect(result.status).toBe("fulfilled");
+    expect(result.data).toEqual(mockData);
+
+    // --- Updated Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/user/${userId}`,
+    );
+    expect(actualRequest.method).toBe("GET");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Get All Records By User
+  {{/if}}
+
+  {{#if (includes extras "getAllRecordsByActiveSts")}}
+  // & --- Test Get All Records By Active Status ---
+  //#region Get All Records By Active Status
+  it("should fetch all records by active status (getAllRecordsByActiveSts)", async () => {
+    const status = "active";
+    const mockData = [
+      { id: 1, name: "Record 1", status },
+      { id: 2, name: "Record 2", status },
+    ];
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockData));
+
+    // Dispatch the action with the active status
+    const result = await store.dispatch(
+      {{camelCase name}}Api.endpoints.getAllRecordsByActiveSts.initiate(status),
+    );
+
+    // Assertions on the result
+    expect(result.status).toBe("fulfilled");
+    expect(result.data).toEqual(mockData);
+
+    // --- Updated Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/archive/${status}`,
+    );
+    expect(actualRequest.method).toBe("GET");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Get All Records By Active Status
+  {{/if}}
+  
+  {{#if (includes extras "getRecordByName")}}
+  // & --- Test Get Record By Name ---
+  //#region Get Record By Name
+  it("should fetch a record by name (getRecordByName)", async () => {
+    const dataName = "Test%20name";
+    const mockData = { id: 1, name: dataName };
+    fetchMock.mockResolvedValueOnce(createMockResponse(mockData));
+
+    // Dispatch the action with the record name
+    const result = await store.dispatch(
+      {{camelCase name}}Api.endpoints.getRecordByName.initiate(dataName),
+    );
+
+    // Assertions on the result
+    expect(result.status).toBe("fulfilled");
+    expect(result.data).toEqual(mockData);
+
+    // --- Updated Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/name/${dataName}/`,
+    );
+    expect(actualRequest.method).toBe("GET");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Get Record By Name
+  {{/if}}
+  
+  {{#if (includes extras "patchRecordSts")}} 
+  // & --- Test Patch Record Status ---
+  //#region Patch Record Status
+  it("should patch the status of a record (patchRecordSts)", async () => {
+    const recordId = 1;
+    const newStatus = "inactive";
+    const updatedRecordData = { id: recordId, status: newStatus };
+    fetchMock.mockResolvedValueOnce(createMockResponse(updatedRecordData));
+
+    // Dispatch the action with the record ID and new status
+    const promise = store.dispatch(
+      {{camelCase name}}Api.endpoints.patchRecordSts.initiate({
+        id: recordId,
+        sts: newStatus,
+      }),
+    );
+
+    // --- Assertions ---
+    // Use expect().resolves to check the unwrapped result
+    await expect(promise.unwrap()).resolves.toEqual(updatedRecordData);
+
+    // You can also check the result object if needed
+    const result = await promise;
+    expect(result.data).toEqual(updatedRecordData);
+
+    // --- Assertions on the mock call ---
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // 1. Get the actual argument (the Request object)
+    const actualRequest = fetchMock.mock.calls[0][0];
+
+    // 2. Verify it's a Request object
+    expect(actualRequest).toBeInstanceOf(Request);
+
+    // 3. Assert individual properties
+    expect(actualRequest.url).toBe(
+      `http://localhost:8000/{{camelCase name}}/${recordId}`,
+    );
+    expect(actualRequest.method).toBe("PATCH");
+    expect(actualRequest.headers.get("Authorization")).toBe(
+      "Bearer MOCK_TOKEN",
+    );
+    // ---------------------------------------------
+
+    // Check if the auth header mock was called by prepareHeaders
+    expect(mockAuthHeader).toHaveBeenCalledTimes(1);
+  });
+  //#endregion Patch Record Status
+  {{/if}}
+});

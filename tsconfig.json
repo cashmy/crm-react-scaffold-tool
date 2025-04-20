@@ -1,0 +1,24 @@
+// tsconfig.json or jsconfig.json
+{
+  "compilerOptions": {
+    // ... other options
+    "types": [
+      "vite/client",
+      "vitest/globals",
+      "vitest",
+      "node"
+    ] // Add "vitest/globals"
+    // If you don't have a "types" array, you might not need to add it,
+    // but if you do, make sure vitest/globals is there.
+    // "node" is often needed too for things like process.env.
+  },
+  "include": [
+    "src",
+    "vite.config.js", // Ensure your vite config is included
+    "vitest.config.js", // Ensure your vitest config is included (if separate)
+    // Add paths to your test files if they aren't under src
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  // ... other config
+}

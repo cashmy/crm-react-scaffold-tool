@@ -84,7 +84,7 @@ export default function (plop) {
           await inquirer.prompt({
             name: "includeVitest",
             type: "confirm",
-            message: "Include Vitest tests?",
+            message: "Include Vitest testing using Vi Mock?",
             default: true,
           })
         ).includeVitest;
@@ -164,7 +164,7 @@ export default function (plop) {
       }
 
       // * Add the "Basic" Redux slice
-      if (data.includeRedux) {
+      if (data.includeRedux && !data.useRtkQuery) {
         actions.push({
           type: "add",
           path: `src/services/{{kebabCase name}}/{{camelCase name}}Slice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
@@ -180,12 +180,48 @@ export default function (plop) {
             return false; // Proceed with the action
           },
         });
+      } else if (data.useRtkQuery) {
+        // * Add the RTK Query API slice
+        actions.push({
+          type: "add",
+          path: `src/services/{{kebabCase name}}/{{camelCase name}}ApiSlice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
+          templateFile:
+            data.format === "typescript"
+              ? "templates/services/rtkqApiSlice-ts.hbs"
+              : "templates/services/rtkqApiSlice-js.hbs",
+          skip: () => {
+            const apiFilePath = `src/services/${plop.getHelper("kebabCase")(data.name)}/${plop.getHelper("camelCase")(data.name)}ApiSlice.${data.format === "typescript" ? "ts" : "js"}`;
+            if (fs.existsSync(apiFilePath)) {
+              return `RTK Query API file for '${data.name}' already exists. Skipping file creation.`;
+            }
+            return false; // Proceed with the action
+          },
+        });
+
+        // * Add the RTK Query Test file
+        if (data.includeVitest) {
+          actions.push({
+            type: "add",
+            path: `src/services/{{kebabCase name}}/{{camelCase name}}ApiSlice.test.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
+            templateFile:
+              data.format === "typescript"
+                ? "templates/services/rtkqApiSlice-test-ts.hbs"
+                : "templates/services/rtkqApiSlice-test-js.hbs",
+            skip: () => {
+              const apiFilePath = `src/services/${plop.getHelper("kebabCase")(data.name)}/${plop.getHelper("camelCase")(data.name)}ApiSlice.test.${data.format === "typescript" ? "ts" : "js"}`;
+              if (fs.existsSync(apiFilePath)) {
+                return `RTK Query API Test file for '${data.name}' already exists. Skipping file creation.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+        }
       }
 
       // * Add Redux store logic
       const storePath = `src/store/store.${data.format === "typescript" ? "ts" : "js"}`;
       const hasStore = fs.existsSync(storePath);
-      const reducerInsertRegex = /reducer:\s*{([\s\S]*?)}/;
+      // const reducerInsertRegex = /reducer:\s*{([\s\S]*?)}/;
 
       if (data.includeRedux && !hasStore) {
         actions.push({
@@ -197,6 +233,7 @@ export default function (plop) {
               : "templates/services/store-js.hbs",
         });
       } else if (data.includeRedux && hasStore) {
+        // TODO: Add condition for RtkQ check here - add apiSlice and Middleware else the code below.
         actions.push({
           type: "modify",
           path: storePath,
@@ -263,17 +300,17 @@ export default function (plop) {
         actions.push({
           type: "add",
           path: hooksPath,
-          templateFile: "templates/hooks-ts.hbs",
+          templateFile: "templates/services/hooks-ts.hbs",
         });
       }
 
       console.log("\n\n******* Generating Service *******");
       console.log("Service name:", data.name, "\n");
-      // console.log("Selected format:", data.format);
-      // console.log("Selected extras:", data.extras);
-      // console.log("Include Vitest:", data.includeVitest);
-      // console.log("Include Redux:", data.includeRedux);
-      // console.log("Use Redux Tool Kit Query:", data.useRtkQuery);
+      console.log("Selected format:", data.format);
+      console.log("Selected extras:", data.extras);
+      console.log("Include Vitest:", data.includeVitest);
+      console.log("Include Redux:", data.includeRedux);
+      console.log("Use Redux Tool Kit Query:", data.useRtkQuery);
       // console.log("Data", data);
 
       return actions;

@@ -1,0 +1,116 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import authHeader from "../authHeader.js";
+
+export const {{camelCase name}}Api = createApi({
+  reducerPath: "{{camelCase name}}Api",
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.BASE_API_URL + "{{name}}/",
+    prepareHeaders(headers) {
+      headers.set("Authorization", authHeader());
+      return headers;
+    },
+  }),
+  tagTypes: ['{{pascalCase name}}'], 
+  endpoints(builder) {
+    return {
+      getAllRecords: builder.query({
+        query: () => "",
+        providesTags: (result) => // Provide tags for caching
+          result
+            ? [...result.map(({ id }) => ({ type: '{{pascalCase name}}', id })), { type: '{{pascalCase name}}', id: 'LIST' }]
+            : [{ type: '{{pascalCase name}}', id: 'LIST' }],
+      }),
+      getRecordById: builder.query({
+        query: (id) => `${id}/`,
+          providesTags: (result, error, id) => [{ type: '{{pascalCase name}}', id }], // Provide tag
+      }),
+      addRecord: builder.mutation({
+        query: (data) => ({
+          url: "",
+          method: "POST",
+          body: data,
+        }),
+        invalidatesTags: [{ type: '{{pascalCase name}}', id: 'LIST' }], // Invalidate list on add
+      }),
+      updateRecord: builder.mutation({
+        query: (data) => ({
+          url: `${data.id}/`,
+          method: "PUT",
+          body: data,
+        }),
+        // Invalidate specific item and list
+        invalidatesTags: (result, error, { id }) => [{ type: '{{pascalCase name}}', id }, { type: '{{pascalCase name}}', id: 'LIST' }],
+      }),
+      deleteRecord: builder.mutation({
+        query: (id) => ({
+          url: `${id}`,
+          method: "DELETE",
+        }),
+        // Invalidate specific item and list
+        invalidatesTags: (result, error, id) => [{ type: '{{pascalCase name}}', id }, { type: '{{pascalCase name}}', id: 'LIST' }],
+      }),
+      {{#if (includes extras "getAllRecordsByUser")}}
+      getAllRecordsByUser: builder.query({
+        query: (userId = 1) => `user/${userId}`,
+                providesTags: (result, error, userId) =>
+          result
+            ? [
+                ...result.map(({ id }) => ({ type: "{{pascalCase name}}", id })),
+                { type: "{{pascalCase name}}", id: `USER-${userId}` }, // User-specific list tag
+              ]
+            : [{ type: "{{pascalCase name}}", id: `USER-${userId}` }],
+      }),
+      {{/if}}
+      {{#if (includes extras "getAllRecordsByActiveSts")}}
+      getAllRecordsByActiveSts: builder.query({
+        query: (status) => `archive/${status}`,
+        providesTags: (result, error, status) =>
+          result
+            ? [
+                ...result.map(({ id }) => ({ type: "{{pascalCase name}}", id })),
+                { type: "{{pascalCase name}}", id: `STATUS-${status}` }, // Status-specific list tag
+              ]
+            : [{ type: "{{pascalCase name}}", id: `STATUS-${status}` }],
+
+      }),
+      {{/if}}
+      {{#if (includes extras "getRecordByName")}}
+      getRecordByName: builder.query({
+        query: (name) => `name/${name}/`,
+        providesTags: (result, error, name) =>
+          result ? [{ type: "{{pascalCase name}}", id: result.id }] : [], // Tag the specific item by its ID
+      }),
+      {{/if}}
+      {{#if (includes extras "patchRecordSts")}}
+      patchRecordSts: builder.mutation({
+        query: ({ id, sts }) => ({
+          url: `${id}`,
+          method: "PATCH",
+          body: { sts },
+        }),
+        // When status changes, invalidate the specific item and potentially lists
+        invalidatesTags: (result, error, { id, status }) => [
+            { type: '{{pascalCase name}}', id }, // Invalidate the specific item
+            { type: '{{pascalCase name}}', id: 'LIST' }, // Invalidate the general list
+            // Also invalidate status lists, as the item might move between them
+            { type: '{{pascalCase name}}', id: `STATUS-active` },
+            { type: '{{pascalCase name}}', id: `STATUS-inactive` }, // Or whatever statuses exist
+            // Consider invalidating USER lists if relevant: { type: '{{pascalCase name}}', id: `USER-${result?.userId || 'UNKNOWN'}` }
+        ],
+      }),
+      {{/if}}
+    };
+  },
+});
+
+export const {
+  useGetAllRecordsQuery,
+  useGetRecordByIdQuery,
+  useAddRecordMutation,
+  useUpdateRecordMutation,
+  useDeleteRecordMutation,
+  {{#if (includes extras "getAllRecordsByUser")}}useGetAllRecordsByUserQuery,{{/if}}
+  {{#if (includes extras "getAllRecordsByActiveSts")}}useGetAllRecordsByActiveStsQuery,{{/if}}
+  {{#if (includes extras "getRecordByName")}}useGetRecordByNameQuery,{{/if}}
+  {{#if (includes extras "patchRecordSts")}}usePatchRecordStsMutation,{{/if}}
+} = {{camelCase name}}Api;

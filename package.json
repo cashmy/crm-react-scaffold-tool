@@ -25,14 +25,17 @@
   },
   "homepage": "https://github.com/cashmy/crm-react-scaffold-tool#readme",
   "dependencies": {
+    "@reduxjs/toolkit": "^2.7.0",
     "axios": "^1.8.4",
     "chalk": "^5.4.1",
     "react": "^19.1.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^6.30.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.25.0",
+    "@types/node": "^22.14.1",
     "@vitest/browser": "^3.1.1",
     "@vitest/coverage-v8": "^3.1.1",
     "@vitest/ui": "^3.1.1",
@@ -42,6 +45,7 @@
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react": "^7.37.5",
     "inquirer": "^12.5.2",
+    "jsdom": "^26.1.0",
     "plop": "^4.0.1",
     "prettier": "^3.5.3",
     "vitest": "^3.1.1"

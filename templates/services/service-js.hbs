@@ -9,11 +9,11 @@ class {{pascalCase name}}Service {
 
   getRecordById = (id) => axios.get(API_URL + `${id}/`, { headers: authHeader() }); 
 
-addRecord = (data) => axios.post(API_URL, data, { headers: authHeader() }); 
+  addRecord = (data) => axios.post(API_URL, data, { headers: authHeader() }); 
 
-updateRecord = (data) => axios.put(API_URL + `${data.id}/`, data, { headers: authHeader() }).then((r) => r.data);
+  updateRecord = (data) => axios.put(API_URL + `${data.id}/`, data, { headers: authHeader() }).then((r) => r.data);
 
-deleteRecord = (id) => axios.delete(API_URL + `${id}`, { headers: authHeader() }).then((r) => r.data);
+  deleteRecord = (id) => axios.delete(API_URL + `${id}`, { headers: authHeader() }).then((r) => r.data);
 
 {{#if (includes extras "getAllRecordsByUser")}}
   getAllRecordsByUser = (userId = 1) => axios.get(API_URL + `user/${userId}`, { headers: authHeader() });

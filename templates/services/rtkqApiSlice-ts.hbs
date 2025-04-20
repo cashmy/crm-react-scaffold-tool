@@ -1,0 +1,130 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import authHeader from "../authHeader";
+
+export const {{camelCase name}}Api = createApi({
+  reducerPath: "{{camelCase name}}Api",
+  baseQuery: fetchBaseQuery({
+    baseUrl: process.env.BASE_API_URL + "{{name}}/",
+    prepareHeaders(headers: Headers) {
+      headers.set("Authorization", authHeader());
+      return headers;
+    },
+  }),
+  tagTypes: ['{{pascalCase name}}'],
+  endpoints(builder) {
+    return {
+      getAllRecords: builder.query<any[], void>({
+        query: () => "",
+        providesTags: (result) =>
+          result
+            ? [
+                ...result.map(({ id }) => ({
+                  type: '{{pascalCase name}}' as const,
+                  id,
+                })),
+                { type: '{{pascalCase name}}', id: 'LIST' },
+              ]
+            : [{ type: '{{pascalCase name}}', id: 'LIST' }],
+      }),
+      getRecordById: builder.query<any, number>({
+        query: (id) => `${id}/`,
+        providesTags: (result, error, id) => [
+          { type: '{{pascalCase name}}', id },
+        ],
+      }),
+      addRecord: builder.mutation<any, any>({
+        query: (data) => ({
+          url: "",
+          method: "POST",
+          body: data,
+        }),
+        invalidatesTags: [{ type: '{{pascalCase name}}', id: 'LIST' }],
+      }),
+      updateRecord: builder.mutation<any, { id: number; [key: string]: any }>({
+        query: (data) => ({
+          url: `${data.id}/`,
+          method: "PUT",
+          body: data,
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: '{{pascalCase name}}', id },
+          { type: '{{pascalCase name}}', id: 'LIST' },
+        ],
+      }),
+      deleteRecord: builder.mutation<void, number>({
+        query: (id) => ({
+          url: `${id}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: (result, error, id) => [
+          { type: '{{pascalCase name}}', id },
+          { type: '{{pascalCase name}}', id: 'LIST' },
+        ],
+      }),
+      {{#if (includes extras "getAllRecordsByUser")}}
+      getAllRecordsByUser: builder.query<any[], number>({
+        query: (userId = 1) => `user/${userId}`,
+        providesTags: (result, error, userId) =>
+          result
+            ? [
+                ...result.map(({ id }) => ({
+                  type: "{{pascalCase name}}" as const,
+                  id,
+                })),
+                { type: "{{pascalCase name}}", id: `USER-${userId}` },
+              ]
+            : [{ type: "{{pascalCase name}}", id: `USER-${userId}` }],
+      }),
+      {{/if}}
+      {{#if (includes extras "getAllRecordsByActiveSts")}}
+      getAllRecordsByActiveSts: builder.query<any[], string>({
+        query: (status) => `archive/${status}`,
+        providesTags: (result, error, status) =>
+          result
+            ? [
+                ...result.map(({ id }) => ({
+                  type: "{{pascalCase name}}" as const,
+                  id,
+                })),
+                { type: "{{pascalCase name}}", id: `STATUS-${status}` },
+              ]
+            : [{ type: "{{pascalCase name}}", id: `STATUS-${status}` }],
+      }),
+      {{/if}}
+      {{#if (includes extras "getRecordByName")}}
+      getRecordByName: builder.query<any, string>({
+        query: (name) => `name/${name}/`,
+        providesTags: (result, error, name) =>
+          result ? [{ type: "{{pascalCase name}}", id: result.id }] : [],
+      }),
+      {{/if}}
+      {{#if (includes extras "patchRecordSts")}}
+      patchRecordSts: builder.mutation<any, { id: number; sts: string }>({
+        query: ({ id, sts }) => ({
+          url: `${id}`,
+          method: "PATCH",
+          body: { sts },
+        }),
+        invalidatesTags: (result, error, { id }) => [
+          { type: '{{pascalCase name}}', id },
+          { type: '{{pascalCase name}}', id: 'LIST' },
+          { type: '{{pascalCase name}}', id: `STATUS-active` },
+          { type: '{{pascalCase name}}', id: `STATUS-inactive` },
+        ],
+      }),
+      {{/if}}
+    };
+  },
+});
+
+export const {
+  useGetAllRecordsQuery,
+  useGetRecordByIdQuery,
+  useAddRecordMutation,
+  useUpdateRecordMutation,
+  useDeleteRecordMutation,
+  {{#if (includes extras "getAllRecordsByUser")}}useGetAllRecordsByUserQuery,{{/if}}
+  {{#if (includes extras "getAllRecordsByActiveSts")}}useGetAllRecordsByActiveStsQuery,{{/if}}
+  {{#if (includes extras "getRecordByName")}}useGetRecordByNameQuery,{{/if}}
+  {{#if (includes extras "patchRecordSts")}}usePatchRecordStsMutation,{{/if}}
+} = {{camelCase name}}Api;
