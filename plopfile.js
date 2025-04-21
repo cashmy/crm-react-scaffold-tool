@@ -173,7 +173,7 @@ export default function (plop) {
 
       // * Add the Redux slice(s) & Option RTK Query Test file
       if (data.includeRedux && !data.useRtkQuery) {
-        // & Add the "Bassic" Redux slice
+        // & Add the "Basic" Redux slice
         actions.push({
           type: "add",
           path: `src/services/{{kebabCase name}}/{{camelCase name}}Slice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
@@ -189,6 +189,25 @@ export default function (plop) {
             return false; // Proceed with the action
           },
         });
+
+        // & Add the "Basic" Redux Slice Test file
+        if (data.includeVitest) {
+          actions.push({
+            type: "add",
+            path: `src/services/{{kebabCase name}}/{{camelCase name}}Slice.test.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
+            templateFile:
+              data.format === "typescript"
+                ? "templates/services/redux-slice-test-ts.hbs"
+                : "templates/services/redux-slice-test-js.hbs",
+            skip: () => {
+              const apiFilePath = `src/services/${plop.getHelper("kebabCase")(data.name)}/${plop.getHelper("camelCase")(data.name)}Slice.test.${data.format === "typescript" ? "ts" : "js"}`;
+              if (fs.existsSync(apiFilePath)) {
+                return `Redux slice Test file for '${data.name}' already exists. Skipping file creation.`;
+              }
+              return false; // Proceed with the action
+            },
+          });
+        }
       } else if (data.includeRedux && data.useRtkQuery) {
         // & Add the RTK Query API slice
         actions.push({
@@ -207,7 +226,7 @@ export default function (plop) {
           },
         });
 
-        // * Add the RTK Query Test file
+        // & Add the RTK Query Test file
         if (data.includeVitest) {
           actions.push({
             type: "add",
@@ -246,7 +265,6 @@ export default function (plop) {
               : "templates/services/store-js.hbs",
         });
       } else if (data.includeRedux && hasStore) {
-        // TODO: Add condition for RtkQ check here - add apiSlice and Middleware else the code below.
         if (data.useRtkQuery === true) {
           // & Add the RTKQ reducer to the store
           actions.push({
@@ -271,7 +289,7 @@ export default function (plop) {
             path: storePath,
             pattern:
               /(import\s+\{\s*configureStore\s*\}\s+from\s+['"]@reduxjs\/toolkit['"];)/,
-            template: `$1\nimport { {{camelCase name}}ApiSlice } from './{{camelCase name}}ApiSlice';`,
+            template: `$1\nimport { {{camelCase name}}ApiSlice } from '../services/{{kebabCase name}}/{{camelCase name}}ApiSlice';`,
             skip: () => {
               const fileContent = fs.readFileSync(storePath, "utf8");
               const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically
@@ -371,7 +389,7 @@ export default function (plop) {
             path: storePath,
             pattern:
               /(import\s+\{\s*configureStore\s*\}\s+from\s+['"]@reduxjs\/toolkit['"];)/,
-            template: `$1\nimport {{camelCase name}}Reducer from './{{camelCase name}}Slice';`,
+            template: `$1\nimport {{camelCase name}}Reducer from '../services/{{kebabCase name}}/{{camelCase name}}Slice';`,
             skip: () => {
               const fileContent = fs.readFileSync(storePath, "utf8");
               const reducerName = plop.getHelper("camelCase")(data.name); // Get the reducer name dynamically

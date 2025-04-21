@@ -1,0 +1,168 @@
+import { describe, it, expect, vi, beforeEach, Mock } from "vitest";
+import { configureStore, EnhancedStore } from "@reduxjs/toolkit";
+import {{camelCase name}}Reducer, {
+  fetch{{pascalCase name}}s,
+  resetState,
+  // Assuming you export the state type from your slice file
+  // If not, define it here or import it appropriately
+  {{pascalCase name}}State, // Import or define your state type
+} from "./{{camelCase name}}Slice"; // Adjust if your slice file name is different
+import {{pascalCase name}}Service from "./{{camelCase name}}.service"; // Adjust if your service file name is different
+// Import your actual store configuration types if available
+// import { RootState, AppDispatch } from '../../store/store'; // Example path
+
+// --- Define Types ---
+// Define a minimal type for the items if not already defined/imported
+interface {{pascalCase name}}Item {
+  id: number;
+  name: string;
+  // Add other properties as needed
+}
+
+// Define the shape of the service mock
+interface Mock{{pascalCase name}}Service {
+  getAllRecords: Mock<[], Promise<{ data: {{pascalCase name}}Item[] }>>;
+}
+
+// Define a minimal RootState if not importing from the actual store
+// This helps in typing the store used within the test
+interface MinimalRootState {
+  {{camelCase name}}: {{pascalCase name}}State;
+  // Add other slices if necessary for the test context
+}
+
+// --- Mocking ---
+// Mock the {{pascalCase name}}Service with type safety
+vi.mock("./{{camelCase name}}.service", (): { default: Mock{{pascalCase name}}Service } => ({
+  default: {
+    getAllRecords: vi.fn(),
+  },
+}));
+
+// Cast the imported service to the mocked type for type safety in tests
+const mocked{{pascalCase name}}Service = {{pascalCase name}}Service as Mock{{pascalCase name}}Service;
+
+describe("{{camelCase name}}Slice", () => {
+  // Use the imported or defined State type
+  const initialState: {{pascalCase name}}State = {
+    items: [],
+    loading: false,
+    error: null,
+  };
+
+  // Use a fresh store instance for dispatch tests to avoid state leakage
+  // Type the store for better testing experience
+  let store: EnhancedStore<MinimalRootState>;
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.resetAllMocks();
+
+    // Create a fresh store for each test that involves dispatching
+    store = configureStore({
+      reducer: {
+        {{camelCase name}}: {{camelCase name}}Reducer,
+        // Add other reducers if needed for more complex scenarios
+      },
+    });
+    // No need to dispatch resetState here if we create a fresh store
+  });
+
+  it("should return the initial state when passed an empty action", () => {
+    const result = {{camelCase name}}Reducer(undefined, { type: "" });
+    expect(result).toEqual(initialState);
+  });
+
+  it("should handle resetState", () => {
+    const currentState: {{pascalCase name}}State = { items: [{ id: 1, name: 'Test'}], loading: true, error: { message: 'error' } };
+    const state = {{camelCase name}}Reducer(currentState, resetState());
+    expect(state).toEqual(initialState);
+  });
+
+
+  describe("fetch{{pascalCase name}}s async thunk reducer logic", () => {
+    it("should handle pending state", () => {
+      const action = { type: fetch{{pascalCase name}}s.pending.type };
+      const state = {{camelCase name}}Reducer(initialState, action);
+      expect(state.loading).toBe(true);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle fulfilled state", () => {
+      const mockData: {{pascalCase name}}Item[] = [
+        { id: 1, name: "Player One" },
+        { id: 2, name: "Player Two" },
+      ];
+      // Type the action payload
+      const action = {
+        type: fetch{{pascalCase name}}s.fulfilled.type,
+        payload: mockData,
+      };
+      const state = {{camelCase name}}Reducer(
+        { ...initialState, loading: true }, // Start from a loading state
+        action,
+      );
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual(mockData);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle rejected state", () => {
+      // Use SerializedError type from Redux Toolkit for better accuracy
+      const mockError = { message: "Failed to fetch", name: "Error" };
+      const action = { type: fetch{{pascalCase name}}s.rejected.type, error: mockError };
+      const state = {{camelCase name}}Reducer(
+        { ...initialState, loading: true }, // Start from a loading state
+        action,
+      );
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual([]); // Items should remain empty
+      // Use toEqual for error objects, or toMatchObject if only checking specific properties
+      expect(state.error).toEqual(mockError);
+    });
+  });
+
+  // --- Test thunk dispatching using the test store ---
+  describe("fetch{{pascalCase name}}s async thunk (Store Dispatch)", () => {
+    it("should fetch items and update state correctly via store dispatch", async () => {
+      // 1. Arrange
+      const mockApiResponse = { data: [{ id: 1, name: "Test Player" }] };
+      const expectedItems = mockApiResponse.data;
+      // Use the typed mock
+      mocked{{pascalCase name}}Service.getAllRecords.mockResolvedValue(mockApiResponse);
+
+      // 2. Act
+      // Dispatch the thunk. Use `any` or cast if AppDispatch type isn't available/imported
+      await store.dispatch(fetch{{pascalCase name}}s() as any);
+
+      // 3. Assert
+      expect(mocked{{pascalCase name}}Service.getAllRecords).toHaveBeenCalledTimes(1);
+
+      // Get the state from the test store
+      const state = store.getState().{{camelCase name}};
+
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual(expectedItems);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle fetch rejection and update state correctly via store dispatch", async () => {
+      // 1. Arrange
+      const mockError = new Error("Network Error");
+      mocked{{pascalCase name}}Service.getAllRecords.mockRejectedValue(mockError);
+
+      // 2. Act
+      await store.dispatch(fetch{{pascalCase name}}s() as any);
+
+      // 3. Assert
+      expect(mocked{{pascalCase name}}Service.getAllRecords).toHaveBeenCalledTimes(1);
+
+      const state = store.getState().{{camelCase name}};
+
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual([]); // Assuming initial state has empty items
+      // Redux Toolkit serializes the error, so we check the message property
+      expect(state.error).toMatchObject({ message: mockError.message });
+    });
+  });
+});

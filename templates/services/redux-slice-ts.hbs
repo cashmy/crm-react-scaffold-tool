@@ -1,6 +1,13 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import {{pascalCase name}}Service from '.\{{pascalCase name}}.service';
 
+// Define the initial state shape separately for reusability
+const initialState = {
+  items: [],
+  loading: false,
+  error: null,
+};
+
 export const fetch{{pascalCase name}}s = createAsyncThunk(
   '{{camelCase name}}/fetchAll',
   async () => {
@@ -11,12 +18,11 @@ export const fetch{{pascalCase name}}s = createAsyncThunk(
 
 const {{camelCase name}}Slice = createSlice({
   name: '{{camelCase name}}',
-  initialState: {
-    items: [],
-    loading: false,
-    error: null,
+  initialState,
+  reducers: {
+    // Add a reducer to reset the state back to initial
+    resetState: () => initialState,
   },
-  reducers: {},
   extraReducers: (builder) => {
     builder
       .addCase(fetch{{pascalCase name}}s.pending, (state) => {
@@ -33,4 +39,5 @@ const {{camelCase name}}Slice = createSlice({
   },
 });
 
+export const { resetState } = {{camelCase name}}Slice.actions;
 export default {{camelCase name}}Slice.reducer;

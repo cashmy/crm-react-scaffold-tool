@@ -1,0 +1,127 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { store } from "../../store/store"; // <--- Import your actual store
+import {{camelCase name}}Reducer, {
+  fetch{{pascalCase name}}s,
+  resetState,
+} from "./{{camelCase name}}Slice";
+import {{pascalCase name}}Service from "./{{camelCase name}}.service";
+
+// Mock the {{pascalCase name}}Service
+vi.mock("./{{camelCase name}}.service", () => ({
+  default: {
+    getAllRecords: vi.fn(),
+  },
+}));
+
+describe("{{camelCase name}}Slice", () => {
+  const initialState = {
+    items: [],
+    loading: false,
+    error: null,
+  };
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.resetAllMocks();
+    // Reset the store state if needed
+    store.dispatch(resetState());
+  });
+
+  it("should return the initial state", () => {
+    expect({{camelCase name}}Reducer(undefined, { type: "unknown" })).toEqual(
+      initialState,
+    );
+  });
+
+  describe("fetch{{pascalCase name}}s async thunk", () => {
+    it("should handle pending state", () => {
+      const action = { type: fetch{{pascalCase name}}s.pending.type };
+      const state = {{camelCase name}}Reducer(initialState, action);
+      expect(state.loading).toBe(true);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle fulfilled state", () => {
+      const mockData = [
+        { id: 1, name: "Player One" },
+        { id: 2, name: "Player Two" },
+      ];
+      const action = {
+        type: fetch{{pascalCase name}}s.fulfilled.type,
+        payload: mockData,
+      };
+      const state = {{camelCase name}}Reducer(
+        { ...initialState, loading: true },
+        action,
+      ); // Start from a loading state
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual(mockData);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle rejected state", () => {
+      const mockError = { message: "Failed to fetch", name: "Error" };
+      // Note: Redux Toolkit attaches the error object to action.error
+      const action = { type: fetch{{pascalCase name}}s.rejected.type, error: mockError };
+      const state = {{camelCase name}}Reducer(
+        { ...initialState, loading: true },
+        action,
+      ); // Start from a loading state
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual([]); // Items should remain empty or unchanged
+      expect(state.error).toEqual(mockError);
+    });
+  });
+
+  // Although the thunk action creator itself isn't part of the reducer logic,
+  // you might want to test if it calls the service correctly.
+  // This requires a slightly different setup using a mock store or dispatch.
+  // However, the tests above cover how the *reducer* handles the thunk's lifecycle actions.
+
+  // Example of testing the thunk action creator call (optional, more advanced)
+  // --- Test using the imported application store ---
+  describe("fetch{{pascalCase name}}s async thunk (Store Dispatch)", () => {
+    it("should fetch player ones and update state correctly via imported store dispatch", async () => {
+      // 1. Arrange
+      const mockApiResponse = { data: [{ id: 1, name: "Test Player" }] };
+      const expectedItems = mockApiResponse.data;
+      {{pascalCase name}}Service.getAllRecords.mockResolvedValue(mockApiResponse);
+
+      // Use the imported store instance
+      // Store is reset in beforeEach
+
+      // 2. Act
+      await store.dispatch(fetch{{pascalCase name}}s());
+
+      // 3. Assert
+      expect({{pascalCase name}}Service.getAllRecords).toHaveBeenCalledTimes(1);
+
+      // Get the state from the actual store
+      const state = store.getState().{{camelCase name}}; // Access the relevant slice state
+
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual(expectedItems);
+      expect(state.error).toBeNull();
+    });
+
+    it("should handle fetch rejection and update state correctly via imported store dispatch", async () => {
+      // 1. Arrange
+      const mockError = new Error("Network Error");
+      {{pascalCase name}}Service.getAllRecords.mockRejectedValue(mockError);
+
+      // Use the imported store instance
+
+      // 2. Act
+      await store.dispatch(fetch{{pascalCase name}}s());
+
+      // 3. Assert
+      expect({{pascalCase name}}Service.getAllRecords).toHaveBeenCalledTimes(1);
+
+      const state = store.getState().{{camelCase name}};
+
+      expect(state.loading).toBe(false);
+      expect(state.items).toEqual([]); // Assuming initial state or reset state has empty items
+      expect(state.error).toMatchObject({ message: mockError.message });
+    });
+  });
+});
