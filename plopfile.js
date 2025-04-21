@@ -171,8 +171,9 @@ export default function (plop) {
         });
       }
 
-      // * Add the "Basic" Redux slice
+      // * Add the Redux slice(s) & Option RTK Query Test file
       if (data.includeRedux && !data.useRtkQuery) {
+        // & Add the "Bassic" Redux slice
         actions.push({
           type: "add",
           path: `src/services/{{kebabCase name}}/{{camelCase name}}Slice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
@@ -189,7 +190,7 @@ export default function (plop) {
           },
         });
       } else if (data.includeRedux && data.useRtkQuery) {
-        // * Add the RTK Query API slice
+        // & Add the RTK Query API slice
         actions.push({
           type: "add",
           path: `src/services/{{kebabCase name}}/{{camelCase name}}ApiSlice.{{#if (eq format "typescript")}}ts{{else}}js{{/if}}`,
@@ -232,6 +233,7 @@ export default function (plop) {
       // const reducerInsertRegex = /reducer:\s*{([\s\S]*?)}/;
 
       if (data.includeRedux && !hasStore) {
+        // & Add the Redux new store file
         actions.push({
           type: "add",
           path: storePath,
@@ -285,45 +287,65 @@ export default function (plop) {
             },
           });
           // & Add or Update the middleware to the storePath
+          // --- Start Refactored Middleware Logic ---
+          const middlewareSignature = /middleware:\s*\(/; // Check if middleware key exists
+          const middlewareConcat =
+            /getDefaultMiddleware\(\)\.concat\(([\s\S]*?)\)/; // Find existing concat
+          const camelCaseName = plop.getHelper("camelCase")(data.name); // Get the camelCase name
+          const specificMiddleware = new RegExp(
+            `\\b${camelCaseName}ApiSlice\\.middleware\\b`,
+          ); // Check for the specific middleware
 
-          //         // ? First check if the middleware already exists and if so, simply add using .concat
-          //         actions.push({
-          //           type: "modify",
-          //           path: storePath,
-          //           pattern:
-          //             /(middleware:\s*\(getDefaultMiddleware\)\s*=>\s*{[\s\S]*?getDefaultMiddleware\(\)\.concat\([\s\S]*?)\);/,
-          //           template: `$1.concat({{camelCase name}}ApiSlice.middleware);`,
-          //           skip: () => {
-          //             const fileContent = fs.readFileSync(storePath, "utf8");
-          //             const middlewareExists = new RegExp(
-          //               `\\b${plop.getHelper("camelCase")(data.name)}ApiSlice\\b`,
-          //             ).test(fileContent);
-          //             if (middlewareExists) {
-          //               return `Middleware for '${data.name}' already exists in the store. Skipping modification.`;
-          //             }
-          //             return false; // Proceed with the action
-          //           },
-          //         });
+          // ^ Action 1: Modify existing middleware chain by appending
+          actions.push({
+            type: "modify",
+            path: storePath,
+            // Match the entire chain from getDefaultMiddleware() including all existing .concat() calls
+            // It captures the whole chain into $1
+            pattern: /(getDefaultMiddleware\(\)(?:\.concat\([\s\S]*?\))*)/,
+            // Append the new .concat() call to the captured chain ($1)
+            template: `$1\n      .concat(${camelCaseName}ApiSlice.middleware)`,
+            skip: () => {
+              const currentContent = fs.readFileSync(storePath, "utf8");
+              // 1. Check if the middleware key even exists
+              if (!middlewareSignature.test(currentContent)) {
+                return `Middleware definition not found. Skipping modification, will attempt to add.`;
+              }
+              // 2. Check if this specific middleware is already added
+              if (specificMiddleware.test(currentContent)) {
+                return `Middleware for '${data.name}' already exists in ${storePath}. Skipping modification.`;
+              }
+              // 3. Check if the base pattern exists (should match if middlewareSignature passed)
+              const basePattern = /getDefaultMiddleware\(\)/;
+              if (!basePattern.test(currentContent)) {
+                return `Middleware definition found, but 'getDefaultMiddleware()' pattern not matched. Skipping modification. Manual check needed.`;
+              }
+              // If checks pass, proceed with modification
+              console.log(
+                `Middleware definition found. Appending concat for ${camelCaseName}ApiSlice.middleware in ${storePath}.`,
+              );
+              return false;
+            },
+          });
 
-          //         actions.push({
-          //           type: "modify",
-          //           path: storePath,
-          //           pattern:
-          //             /(middleware:\s*\(getDefaultMiddleware\)\s*=>\s*{[\s\S]*?})|$/,
-          //           template: `middleware: (getDefaultMiddleware) => {
-          //   return getDefaultMiddleware().concat({{camelCase name}}ApiSlice.middleware);
-          // }`,
-          //           skip: () => {
-          //             const fileContent = fs.readFileSync(storePath, "utf8");
-          //             const middlewareExists = new RegExp(
-          //               `\\b${plop.getHelper("camelCase")(data.name)}ApiSlice\\b`,
-          //             ).test(fileContent);
-          //             if (middlewareExists) {
-          //               return `Middleware for '${data.name}' already exists in the store. Skipping modification.`;
-          //             }
-          //             return false; // Proceed with the action
-          //           },
-          //         });
+          // ^ Action 2: Add middleware block if it doesn't exist
+          actions.push({
+            type: "modify",
+            path: storePath,
+            pattern: /(reducer:\s*{[\s\S]*?}\s*),?/, // Find the end of the reducer block
+            template: `$1,\n  middleware: (getDefaultMiddleware) => {\n    return getDefaultMiddleware()\n      .concat(${camelCaseName}ApiSlice.middleware);\n  },`, // Add the middleware block after reducer
+            skip: () => {
+              const currentContent = fs.readFileSync(storePath, "utf8");
+              if (middlewareSignature.test(currentContent)) {
+                return `Middleware definition already exists. Skipping addition.`; // Skip if middleware key exists
+              }
+              console.log(
+                `Middleware definition not found. Adding middleware block to ${storePath}.`,
+              );
+              return false; // Proceed with adding the block
+            },
+          });
+          // --- End Refactored Middleware Logic --
         } else {
           // & Add the standard reducer to the store
           actions.push({
